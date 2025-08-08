@@ -111,13 +111,7 @@ def build_encoder_decoder_sequences(merged_dict, vocab):
         encoded_sequences.append((hadm_id, encoder_input, decoder_input, decoder_output))
     return encoded_sequences
 
-# save vocab to excel sheets
-def save_vocab_to_excel(item2idx, class_weights, filepath='vocab.xlsx'):
-    data = [{'Item': item, 'Index': idx, 'Weight': class_weights[idx].item()}
-            for item, idx in item2idx.items()]
-    pd.DataFrame(data).to_excel(filepath, index=False)
-    print(f"Vocabulary saved to {filepath}")
-
+# save encoded sequences to excel
 def save_sequences_to_excel(encoded_sequences, filepath='encoded_sequences.xlsx'):
     data = [{'HADM_ID': hadm_id,
              'Encoder_Input': ','.join(map(str, enc)),
@@ -126,6 +120,47 @@ def save_sequences_to_excel(encoded_sequences, filepath='encoded_sequences.xlsx'
             for hadm_id, enc, dec_in, dec_out in encoded_sequences]
     pd.DataFrame(data).to_excel(filepath, index=False)
     print(f"Sequences saved to {filepath}")
+
+# save vocab to excel sheets
+def save_vocab_to_excel(item2idx, class_weights=None, filepath='vocab.xlsx'):
+    """
+    Save the vocabulary and optionally the class weights to an Excel file.
+
+    Args:
+        item2idx (dict): Mapping from item string to index.
+        class_weights (torch.Tensor, optional): Tensor of class weights.
+        filepath (str): Excel file path to save to.
+    """
+    # prepare data for DataFrame: item, index, and optionally weight
+    data = []
+    for item, idx in item2idx.items():
+        weight = None
+        if class_weights is not None and idx < len(class_weights):
+            weight = class_weights[idx].item()  # convert tensor to python float
+        data.append({'Item': item, 'Index': idx, 'Weight': weight})
+
+    df = pd.DataFrame(data)
+
+    # Save to Excel
+    df.to_excel(filepath, index=False)
+    print(f"Vocabulary saved to Excel file: {filepath}")
+
+def load_vocab_from_excel(filepath='vocab.xlsx'):
+    """
+    Load vocabulary and class weights from an Excel file saved by save_vocab_to_excel.
+
+    Returns:
+        item2idx (dict): Mapping from item string to index.
+        class_weights (torch.Tensor or None): Tensor of class weights if present, else None.
+    """
+    df = pd.read_excel(filepath)
+    item2idx = dict(zip(df['Item'], df['Index']))
+    if 'Weight' in df.columns:
+        weights_list = df['Weight'].fillna(1.0).tolist()  # fill missing with 1.0
+        class_weights = torch.tensor(weights_list, dtype=torch.float)
+    else:
+        class_weights = None
+    return item2idx, class_weights
 
 # main script
 if __name__ == "__main__":
