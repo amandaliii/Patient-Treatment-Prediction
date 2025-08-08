@@ -23,37 +23,49 @@ def load_mimic3_data(mimic_3data, nrows):
     data_dicts = {}
     for key, (file_name, sort_cols, group_col) in data_files.items():
         file_path = os.path.join(mimic_3data, file_name)
-        # check if file exists at specified path - if not, assign empty and move on
         if not os.path.exists(file_path):
             print(f"File not found: {file_path}")
             data_dicts[key] = {}
             continue
-        # try and read and process other files that are found
         try:
-            df = pd.read_csv(file_path, compression='gzip', nrows=nrows, usecols=sort_cols + [group_col])
-            # check if dataframe is empty
+            dtype_mapping = {
+                'HADM_ID': 'Int64',
+                'ITEMID': 'Int64',
+                'SPEC_ITEMID': 'Int64',
+                'DRUG': str
+            }
+            # if group_col is DRUG (string), keep as str
+            dtype_for_cols = {col: dtype_mapping.get(col, str) for col in sort_cols}
+
+            if group_col == 'DRUG':
+                dtype_for_cols[group_col] = str
+                df = pd.read_csv(file_path, compression='gzip', nrows=nrows,
+                                 usecols=sort_cols + [group_col], dtype=dtype_for_cols)
+            else:
+                dtype_for_cols[group_col] = 'Int64'  # use nullable int dtype
+                df = pd.read_csv(file_path, compression='gzip', nrows=nrows,
+                                 usecols=sort_cols + [group_col], dtype=dtype_for_cols)
+
+                # drop missing values:
+                df = df.dropna(subset=[group_col])
+                # cast to int using pd.Int64Dtype
+                df[group_col] = df[group_col].astype('Int64')
+
             if df.empty:
                 print(f"Empty DataFrame: {file_path}")
-                # if dataframe is empty then assign empty and move on
                 data_dicts[key] = {}
             else:
-                # check if required columns exist
                 missing_cols = [col for col in sort_cols + [group_col] if col not in df.columns]
-                # if any required columns are missing
                 if missing_cols:
                     print(f"Missing columns: {missing_cols} in {file_name}")
                     data_dicts[key] = {}
                 else:
-                    # sort dataframe by specified columns
                     sorted_df = df.sort_values(by=sort_cols)
-                    # group by HADM_ID and collect the group_col into lists, convert to dict
                     data_dicts[key] = sorted_df.groupby('HADM_ID')[group_col].apply(list).to_dict()
                     print(f"Loaded {file_name} with {len(df)} rows")
-        # catch exceptions/errors
         except Exception as e:
             print(f"Error reading {file_name} : {e}")
             data_dicts[key] = {}
-
 
     # empty dict for merged results
     merged_dict = {}
@@ -105,10 +117,7 @@ def build_vocab(merged_dict):
         vocab[code] = idx + 4
     return vocab
 
-# show how many hadm_ids were merged/logged
-print(f"\nTotal HADM IDs: {len(result)}")
-
-# Prepare sequences as (encoder_input, decoder_target)
+# prepare sequences as (encoder_input, decoder_target)
 def build_encoder_decoder_sequences(merged_dict, vocab):
     encoded_sequences = []
     # iterates over each hadm_id and its data
@@ -123,8 +132,6 @@ def build_encoder_decoder_sequences(merged_dict, vocab):
         # has to have at least three tokens - less than 3 is too short to work with
         if len(token_list) < 3:
             continue
-
-        print(f"HADM_ID {hadm_id}: Total merged events = {len(token_list)}")
 
         # converts each event code to its integer vocab index; if code isn't in vocab, use index for 'UNK'
         token_ids = [vocab.get(code, vocab['<UNK>']) for code in token_list]
