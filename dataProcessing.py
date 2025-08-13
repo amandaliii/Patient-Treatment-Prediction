@@ -7,7 +7,7 @@ from info import NROWS
 # load mimic data
 def load_mimic3_data(mimic_3data, nrows):
     # Load ADMISSIONS.csv.gz to get admission times
-    admissions_file = os.path.join(mimic_3data, 'ADMISSIONS.csv.gz')
+    admissions_file = os.path.join(mimic_3data, 'ADMISSIONS.csv')
     if not os.path.exists(admissions_file):
         print(f"File not found: {admissions_file}")
         raise FileNotFoundError("ADMISSIONS.csv.gz is required for admission times")
@@ -15,7 +15,6 @@ def load_mimic3_data(mimic_3data, nrows):
     # Load admissions data with relevant columns
     admissions_df = pd.read_csv(
         admissions_file,
-        compression='gzip',
         usecols=['HADM_ID', 'ADMITTIME'],
         dtype={'HADM_ID': 'Int64'},
         parse_dates=['ADMITTIME']
@@ -27,12 +26,12 @@ def load_mimic3_data(mimic_3data, nrows):
     # input events: administration of fluids, medications, or other substances
     # data dictionary mapping - file name, sort columns, and grouping column
     data_files = {
-        'chart_events': ('CHARTEVENTS.csv.gz', ['HADM_ID', 'CHARTTIME'], 'ITEMID'),
-        'input_events': ('INPUTEVENTS_MV.csv.gz', ['HADM_ID', 'STARTTIME'], 'ITEMID'),
-        'lab_events': ('LABEVENTS.csv.gz', ['HADM_ID', 'CHARTTIME'], 'ITEMID'),
-        'microbiology_events': ('MICROBIOLOGYEVENTS.csv.gz', ['HADM_ID', 'CHARTTIME'], 'SPEC_ITEMID'),
-        'prescriptions': ('PRESCRIPTIONS.csv.gz', ['HADM_ID', 'STARTDATE'], 'DRUG'),
-        'procedure_events': ('PROCEDUREEVENTS_MV.csv.gz', ['HADM_ID', 'STARTTIME'], 'ITEMID'),
+        'chart_events': ('CHARTEVENTS.csv', ['HADM_ID', 'CHARTTIME'], 'ITEMID'),
+        'input_events': ('INPUTEVENTS_MV.csv', ['HADM_ID', 'STARTTIME'], 'ITEMID'),
+        'lab_events': ('LABEVENTS.csv', ['HADM_ID', 'CHARTTIME'], 'ITEMID'),
+        'microbiology_events': ('MICROBIOLOGYEVENTS.csv', ['HADM_ID', 'CHARTTIME'], 'SPEC_ITEMID'),
+        'prescriptions': ('PRESCRIPTIONS.csv', ['HADM_ID', 'STARTDATE'], 'DRUG'),
+        'procedure_events': ('PROCEDUREEVENTS_MV.csv', ['HADM_ID', 'STARTTIME'], 'ITEMID'),
     }
 
     # store grouped data for each category
@@ -49,7 +48,6 @@ def load_mimic3_data(mimic_3data, nrows):
         if key == 'chart_events':
             df = pd.read_csv(
                 file_path,
-                compression='gzip',
                 nrows=nrows,
                 usecols=['HADM_ID', 'CHARTTIME', 'ITEMID'],
                 dtype={'HADM_ID': 'Int64', 'ITEMID': 'Int64'},
@@ -83,7 +81,6 @@ def load_mimic3_data(mimic_3data, nrows):
                     dtype_for_cols[col] = str  # default
             df = pd.read_csv(
                 file_path,
-                compression='gzip',
                 nrows=nrows,
                 usecols=sort_cols + [group_col],
                 dtype=dtype_for_cols if dtype_for_cols else None,
