@@ -1,13 +1,13 @@
 MIMIC_DATA_DIR = "/Users/amandali/Downloads/Mimic III"
-NROWS = 2000000
+NROWS = 500000
 
 CATEGORIES = {
-    'chart_events': 'chart_items',
-    'input_events': 'input_items',
-    'lab_events': 'lab_items',
-    'microbiology_events': 'microbiology_items',
-    'prescriptions': 'prescriptions_items',
-    'procedure_events': 'procedure_items'
+    'chart_events': 'chart_events',
+    'input_events': 'input_events',
+    'lab_events': 'lab_events',
+    'microbiology_events': 'microbiology_events',
+    'prescriptions': 'prescriptions',
+    'procedure_events': 'procedure_events'
 }
 
 # map model categories to D_ITEMS.csv categories for label lookup
