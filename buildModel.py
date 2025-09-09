@@ -5,36 +5,29 @@ import torch.nn as nn
 
 # dataset for sequences, inherits PyTorch Dataset for batching & shuffling
 class SequenceDataset(Dataset):
-    def __init__(self, sequences, item2idx, max_len=20):
-        # list to store (input sequence, target) pairs for training
+    def __init__(self, sequences, item2idx, max_len=20, pad_token='<PAD>'):
         self.pairs = []
-        # maximum length of input sequences
         self.max_len = max_len
-        # vocabulary mapping
         self.item2idx = item2idx
+        self.pad_idx = item2idx[pad_token]
+
         for seq in sequences:
-            # convert each item into its index in vocab, using <UNK> index if missing
-            # convert items to strings
             idx_seq = [item2idx.get(str(item), item2idx['<UNK>']) for item in seq]
-            # generate pairs: for each item except the first, predict that item given previous items
             for i in range(1, len(idx_seq)):
-                # use sliding window of size max_len for input
                 input_seq = idx_seq[:i][-max_len:]
-                # target is current item
                 target = idx_seq[i]
-                # store pair
+                # Skip pairs where target is PAD
+                if target == self.pad_idx:
+                    continue
                 self.pairs.append((input_seq, target))
 
     def __len__(self):
-        # number of training pairs
         return len(self.pairs)
 
     def __getitem__(self, idx):
         input_seq, target = self.pairs[idx]
-        # pad input sequence on left with 0 (index of <PAD>) if shorter than max length
         if len(input_seq) < self.max_len:
-            input_seq = [0] * (self.max_len - len(input_seq)) + input_seq
-        # return input sequence tensor and target tensor for given index
+            input_seq = [self.pad_idx] * (self.max_len - len(input_seq)) + input_seq
         return torch.tensor(input_seq, dtype=torch.long), torch.tensor(target, dtype=torch.long)
 
 # model definition using two-layer LSTM with dropout and final linear projection
