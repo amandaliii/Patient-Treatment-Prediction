@@ -1,5 +1,8 @@
+import os
+
 MIMIC_DATA_DIR = "/Users/amandali/Downloads/Mimic III"
 NROWS = 500000
+banned_items_file = os.path.join(MIMIC_DATA_DIR, 'banned_items.txt')
 
 CATEGORIES = {
     'chart_events': 'chart_events',
